@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JotaNotes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<style>
+    #text-editor {
+        width: 100%;
+        height: 400px;
+    }
+</style>
+</head>
+<body>
+<div>
+    <button onclick="newFile()">New</button>
+    <button onclick="openFile()">Open</button>
+    <button onclick="saveFile()">Save</button>
+    <button onclick="saveFileAs()">Save As...</button>
+</div>
+<textarea id="text-editor"></textarea>
+<script>
+    let textEditor = document.getElementById('text-editor');
+    let filepath = null;
+    let key = 'JotaNotes';
+
+    function newFile() {
+        textEditor.value = '';
+        filepath = null;
+    }
+
+    function openFile() {
+        let input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.jne';
+
+        input.onchange = function(event) {
+            let file = event.target.files[0];
+            let reader = new FileReader();
+            reader.readAsText(file);
+            reader.onload = function() {
+                textEditor.value = decryptText(reader.result, key);
+                filepath = file.name;
+            };
+        };
+
+        input.click();
+    }
+
+    function saveFile() {
+        if (filepath) {
+            let encryptedContent = encryptText(textEditor.value, key);
+            download(encryptedContent, filepath, 'text/plain');
+        } else {
+            saveFileAs();
+        }
+    }
+
+    function saveFileAs() {
+        let filename = prompt('Enter file name:');
+        if (filename) {
+            let extension = filename.split('.').pop().toLowerCase();
+            if (extension === 'jne') {
+                download(encryptText(textEditor.value, key), filename, 'text/plain');
+            } else {
+                download(textEditor.value, filename, 'text/plain');
+            }
+        }
+    }
+
+    function encryptText(text, key) {
+        let encryptedText = CryptoJS.AES.encrypt(text, key).toString();
+        return encryptedText;
+    }
+
+    function decryptText(encryptedText, key) {
+        let decryptedBytes = CryptoJS.AES.decrypt(encryptedText, key);
+        let decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+        return decryptedText;
+    }
+    
+    function download(content, filename, contentType) {
+        let a = document.createElement('a');
+        let file = new Blob([content], {type: contentType});
+        a.href = URL.createObjectURL(file);
+        a.download = filename;
+        a.click();
+    }
+</script>
+</body>
+</html>
